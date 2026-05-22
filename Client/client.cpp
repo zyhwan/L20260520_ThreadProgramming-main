@@ -10,6 +10,8 @@
 #include <process.h>
 #include <conio.h>
 #include "SDL.h"
+#include <mutex>
+#include <queue>
 
 #pragma comment(lib, "ws2_32")
 #pragma comment(lib, "NetCommon")
@@ -27,6 +29,9 @@ SessionManager MySessionManager;
 SOCKET MyClientID;
 
 SDL_Event Event;
+std::queue<int> KeyBuffer;
+
+std::mutex SessionLock;
 
 void Render(SDL_Renderer* MyRender)
 {
@@ -46,6 +51,9 @@ void Render(SDL_Renderer* MyRender)
 	SDL_SetRenderDrawColor(MyRender, 0, 0, 0, 255);
 	SDL_RenderClear(MyRender);
 
+	{
+
+	lock_guard<std::mutex> Lock(SessionLock);
 	for (auto& Player : MySessionManager.SessionList)
 	{
 		SDL_Rect Rect;
@@ -60,6 +68,8 @@ void Render(SDL_Renderer* MyRender)
 		SDL_RenderDrawRect(MyRender, &Rect);
 
 	}
+	}
+
 
 	SDL_RenderPresent(MyRender);
 }
@@ -73,7 +83,7 @@ void ProcessPacket(SOCKET ProcessSocket, const char* InBuffer, const Header& InH
 	{
 		S2C_Login LoginPacket;
 		LoginPacket.Parse(InBuffer);
-		cout << LoginPacket.ToString() << endl;
+		std::cout << LoginPacket.ToString() << endl;
 		MyClientID = LoginPacket.ClientSocketID;
 	}
 	break;
@@ -81,7 +91,7 @@ void ProcessPacket(SOCKET ProcessSocket, const char* InBuffer, const Header& InH
 	{
 		S2C_Spawn SpawnData;
 		SpawnData.Parse(InBuffer);
-		cout << SpawnData.ToString() << endl;
+		std::cout << SpawnData.ToString() << endl;
 
 		Session InSession;
 		InSession.ClientSocket = SpawnData.ClientSocket;
@@ -93,7 +103,10 @@ void ProcessPacket(SOCKET ProcessSocket, const char* InBuffer, const Header& InH
 		InSession.G = SpawnData.G;
 		InSession.B = SpawnData.B;
 
-		MySessionManager.Add(InSession);
+		{
+			lock_guard<std::mutex> Lock(SessionLock);
+			MySessionManager.Add(InSession);
+		}
 		//Render();
 	}
 	break;
@@ -118,7 +131,10 @@ void ProcessPacket(SOCKET ProcessSocket, const char* InBuffer, const Header& InH
 
 		std::cout << "Quit : " << FindSession->ClientSocket << endl;
 
-		MySessionManager.Delete(*FindSession);
+		{
+			lock_guard<std::mutex> Lock(SessionLock);
+			MySessionManager.Delete(*FindSession);
+		}
 		//Render();
 	}
 	break;
@@ -140,7 +156,7 @@ unsigned WINAPI RecvThread(void* Argument)
 		int RecvBytes = RecvAll(ServerSocket, (char*)&DataHeader, HeaderSize);
 		if (RecvBytes <= 0)
 		{
-			cout << "header recv fail " << endl;
+			std::cout << "header recv fail " << endl;
 			break;
 		}
 
@@ -151,7 +167,7 @@ unsigned WINAPI RecvThread(void* Argument)
 		RecvBytes = RecvAll(ServerSocket, RecvBuffer, DataHeader.PacketSize);
 		if (RecvBytes <= 0)
 		{
-			cout << "Data recv fail " << endl;
+			std::cout << "Data recv fail " << endl;
 			break;
 		}
 
@@ -169,25 +185,30 @@ unsigned WINAPI SendThread(void* Argument)
 
 	while (IsSendThreadRunning)
 	{
-
-		int KeyCode = _getch();
-
-		if (!(KeyCode == 'w' ||
-			KeyCode == 'W' ||
-			KeyCode == 'a' ||
-			KeyCode == 'A' ||
-			KeyCode == 's' ||
-			KeyCode == 'S' ||
-			KeyCode == 'd' ||
-			KeyCode == 'D'))
+		if (KeyBuffer.empty())
 		{
+			Sleep(0);
 			continue;
 		}
 
+		//int KeyCode = _getch();
+
+		//if (!(KeyCode == 'w' ||
+		//	KeyCode == 'W' ||
+		//	KeyCode == 'a' ||
+		//	KeyCode == 'A' ||
+		//	KeyCode == 's' ||
+		//	KeyCode == 'S' ||
+		//	KeyCode == 'd' ||
+		//	KeyCode == 'D'))
+		//{
+		//	continue;
+		//}
+
 		C2S_Move MoveData;
 		MoveData.ClientSocket = MyClientID;
-		MoveData.Direction = KeyCode;
-
+		MoveData.Direction = KeyBuffer.front();
+		KeyBuffer.pop();
 
 		//header
 		Header DataHeader;
@@ -195,14 +216,14 @@ unsigned WINAPI SendThread(void* Argument)
 		int SentBytes = SendAll(ServerSocket, (char*)&DataHeader, HeaderSize);
 		if (SentBytes <= 0)
 		{
-			cout << "header send fail." << endl;
+			std::cout << "header send fail." << endl;
 		}
 
 		//Data
 		SentBytes = SendAll(ServerSocket, MoveData.ToString().c_str(), (int)(MoveData.ToString().length()));
 		if (SentBytes <= 0)
 		{
-			cout << "Data send fail." << endl;
+			std::cout << "Data send fail." << endl;
 		}
 	}
 
@@ -211,7 +232,7 @@ unsigned WINAPI SendThread(void* Argument)
 
 int SDL_main(int argc, char* argv[])
 {
-	cout << "client " << endl;
+	std::cout << "client " << endl;
 
 
 	SDL_Init(SDL_INIT_EVERYTHING);
@@ -232,7 +253,7 @@ int SDL_main(int argc, char* argv[])
 
 	connect(ServerSocket, (SOCKADDR*)&ServerSockAddr, sizeof(ServerSockAddr));
 
-	cout << "client connect" << endl;
+	std::cout << "client connect" << endl;
 
 	C2S_Login LoginData;
 	LoginData.UserID = "Jihwan";
@@ -244,12 +265,12 @@ int SDL_main(int argc, char* argv[])
 	//Login 요청
 	if (SendAll(ServerSocket, (char*)&LoginHeader, HeaderSize) <= 0)
 	{
-		cout << "login header Error" << endl;
+		std::cout << "login header Error" << endl;
 	}
 
 	if (SendAll(ServerSocket, LoginData.ToString().c_str(), (int)LoginData.ToString().length()) <= 0)
 	{
-		cout << "login data Error" << endl;
+		std::cout << "login data Error" << endl;
 	}
 
 	HANDLE ThreadHandles[2] = { 0, };
@@ -258,51 +279,45 @@ int SDL_main(int argc, char* argv[])
 	ThreadHandles[0] = (HANDLE)_beginthreadex(0, 0, RecvThread, &ServerSocket, /*CREATE_SUSPENDED*/0, 0);
 	ThreadHandles[1] = (HANDLE)_beginthreadex(0, 0, SendThread, &ServerSocket, /*CREATE_SUSPENDED*/0, 0);
 
+	const Uint8* KeyState = SDL_GetKeyboardState(NULL);
+
 	bool Running = true;
 	while (Running)
 	{
 		SDL_PollEvent(&Event);
 		// 이벤트 처리
-		if (Event.type == SDL_KEYDOWN)
+		if (Event.type == SDL_QUIT)
 		{
-			C2S_Move MoveData;
-			MoveData.ClientSocket = MyClientID;
-			if (Event.key.keysym.sym == SDLK_w)
+			IsRecvThreadRunning = false;
+			IsSendThreadRunning = false;
+			break;
+		}
+		else if (Event.type == SDL_KEYDOWN)
+		{
+			if (KeyState[SDL_SCANCODE_ESCAPE])
 			{
-				MoveData.Direction = 'w';
+				IsRecvThreadRunning = false;
+				IsSendThreadRunning = false;
+				break;
 			}
-			if (Event.key.keysym.sym == SDLK_a)
+			if (KeyState[SDL_SCANCODE_W])
 			{
-				MoveData.Direction = 'a';
+				KeyBuffer.push('W');
 			}
-			if (Event.key.keysym.sym == SDLK_s)
+			if (KeyState[SDL_SCANCODE_S])
 			{
-				MoveData.Direction = 's';
+				KeyBuffer.push('S');
 			}
-			if (Event.key.keysym.sym == SDLK_d)
+			if (KeyState[SDL_SCANCODE_A])
 			{
-				MoveData.Direction = 'd';
+				KeyBuffer.push('A');
 			}
-			if (Event.key.keysym.sym == SDLK_ESCAPE)
+			if (KeyState[SDL_SCANCODE_D])
 			{
-				exit(-1);
-			}
-			//Header
-			Header DataHeader;
-			DataHeader.MakeHeader((int)(MoveData.ToString().length()), EPacketType::C2S_Move);
-			int SentBytes = SendAll(ServerSocket, (char*)&DataHeader, HeaderSize);
-			if (SentBytes <= 0)
-			{
-				cout << "header send fail." << endl;
-			}
-
-			//Data
-			SentBytes = SendAll(ServerSocket, MoveData.ToString().c_str(), (int)(MoveData.ToString().length()));
-			if (SentBytes <= 0)
-			{
-				cout << "Data send fail." << endl;
+				KeyBuffer.push('D');
 			}
 		}
+
 		Render(MyRender);
 	}
 
@@ -311,7 +326,7 @@ int SDL_main(int argc, char* argv[])
 
 	closesocket(ServerSocket);
 
-	cout << "End Thread" << endl;
+	std::cout << "End Thread" << endl;
 
 	IsSendThreadRunning = false;
 	IsRecvThreadRunning = false;
