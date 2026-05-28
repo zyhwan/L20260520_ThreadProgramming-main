@@ -80,7 +80,7 @@ void ProcessPacket(SOCKET ProcessSocket, const char* InBuffer)
 	{
 		Session InSession;
 		auto SpawnData = UserPacketData->data_as_S2C_Spawn();
-		InSession.ClientSocket = SpawnData->clientsocket_id();
+		InSession.ClientSocket = (SOCKET)SpawnData->clientsocket_id();
 		InSession.Shape = SpawnData->shape();
 		InSession.X = SpawnData->position()->x();
 		InSession.Y = SpawnData->position()->y();
@@ -92,14 +92,13 @@ void ProcessPacket(SOCKET ProcessSocket, const char* InBuffer)
 			lock_guard<std::mutex> lock(SessionLock);
 			MySessionManager.Add(InSession);
 		}
-		//		Render();
 	}
 	break;
 	case UserPacket::PacketType_S2C_Move:
 	{
-		auto MoveData = UserPacketData->data_as_S2C_Spawn();
+		auto MoveData = UserPacketData->data_as_S2C_Move();
 
-		Session* FindSession = MySessionManager.GetSession(MoveData->clientsocket_id());
+		Session* FindSession = MySessionManager.GetSession((SOCKET)MoveData->clientsocket_id());
 		FindSession->X = MoveData->position()->x();
 		FindSession->Y = MoveData->position()->y();
 	}
@@ -108,7 +107,7 @@ void ProcessPacket(SOCKET ProcessSocket, const char* InBuffer)
 	{
 		auto DestroyPacket = UserPacketData->data_as_S2C_Destroy();
 
-		Session* FindSession = MySessionManager.GetSession(DestroyPacket->clientsocket_id());
+		Session* FindSession = MySessionManager.GetSession((SOCKET)DestroyPacket->clientsocket_id());
 		{
 			lock_guard<std::mutex> lock(SessionLock);
 			MySessionManager.Delete(*FindSession);
