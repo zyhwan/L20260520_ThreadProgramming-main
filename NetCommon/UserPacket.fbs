@@ -42,13 +42,27 @@ table S2C_Move{
 	position:FVector2D;
 }
 
+table C2S_Chat {
+	clientsocket_id:uint16;
+	user_id:string;
+	message:string;
+}
+
+table S2C_Chat {
+	clientsocket_id : uint16;
+	user_id : string;
+	message : string;
+}
+
 union PacketType {
 	C2S_Login,
 	S2C_Login,
 	S2C_Spawn,
 	S2C_Destroy,
 	C2S_Move,
-	S2C_Move
+	S2C_Move,
+	C2S_Chat,
+	S2C_Chat
 }
 
 table PacketData{

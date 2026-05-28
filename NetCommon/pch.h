@@ -16,7 +16,5 @@
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
 
-#include <Winsock2.h>
-
 
 #endif //PCH_H
