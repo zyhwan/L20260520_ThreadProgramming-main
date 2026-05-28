@@ -49,9 +49,14 @@ table C2S_Chat {
 }
 
 table S2C_Chat {
-	clientsocket_id : uint16;
-	user_id : string;
-	message : string;
+	clientsocket_id:uint16;
+	user_id:string;
+	message:string;
+}
+
+table S2C_ChangeColor {
+	clientsocket_id:uint16;
+	color:FColor;
 }
 
 union PacketType {
@@ -62,7 +67,8 @@ union PacketType {
 	C2S_Move,
 	S2C_Move,
 	C2S_Chat,
-	S2C_Chat
+	S2C_Chat,
+	S2C_ChangeColor
 }
 
 table PacketData{

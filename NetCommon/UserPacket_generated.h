@@ -43,6 +43,9 @@ struct C2S_ChatBuilder;
 struct S2C_Chat;
 struct S2C_ChatBuilder;
 
+struct S2C_ChangeColor;
+struct S2C_ChangeColorBuilder;
+
 struct PacketData;
 struct PacketDataBuilder;
 
@@ -56,11 +59,12 @@ enum PacketType : uint8_t {
   PacketType_S2C_Move = 6,
   PacketType_C2S_Chat = 7,
   PacketType_S2C_Chat = 8,
+  PacketType_S2C_ChangeColor = 9,
   PacketType_MIN = PacketType_NONE,
-  PacketType_MAX = PacketType_S2C_Chat
+  PacketType_MAX = PacketType_S2C_ChangeColor
 };
 
-inline const PacketType (&EnumValuesPacketType())[9] {
+inline const PacketType (&EnumValuesPacketType())[10] {
   static const PacketType values[] = {
     PacketType_NONE,
     PacketType_C2S_Login,
@@ -70,13 +74,14 @@ inline const PacketType (&EnumValuesPacketType())[9] {
     PacketType_C2S_Move,
     PacketType_S2C_Move,
     PacketType_C2S_Chat,
-    PacketType_S2C_Chat
+    PacketType_S2C_Chat,
+    PacketType_S2C_ChangeColor
   };
   return values;
 }
 
 inline const char * const *EnumNamesPacketType() {
-  static const char * const names[10] = {
+  static const char * const names[11] = {
     "NONE",
     "C2S_Login",
     "S2C_Login",
@@ -86,13 +91,14 @@ inline const char * const *EnumNamesPacketType() {
     "S2C_Move",
     "C2S_Chat",
     "S2C_Chat",
+    "S2C_ChangeColor",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNamePacketType(PacketType e) {
-  if (::flatbuffers::IsOutRange(e, PacketType_NONE, PacketType_S2C_Chat)) return "";
+  if (::flatbuffers::IsOutRange(e, PacketType_NONE, PacketType_S2C_ChangeColor)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesPacketType()[index];
 }
@@ -131,6 +137,10 @@ template<> struct PacketTypeTraits<UserPacket::C2S_Chat> {
 
 template<> struct PacketTypeTraits<UserPacket::S2C_Chat> {
   static const PacketType enum_value = PacketType_S2C_Chat;
+};
+
+template<> struct PacketTypeTraits<UserPacket::S2C_ChangeColor> {
+  static const PacketType enum_value = PacketType_S2C_ChangeColor;
 };
 
 template <bool B = false>
@@ -694,6 +704,58 @@ inline ::flatbuffers::Offset<S2C_Chat> CreateS2C_ChatDirect(
       message__);
 }
 
+struct S2C_ChangeColor FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef S2C_ChangeColorBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_CLIENTSOCKET_ID = 4,
+    VT_COLOR = 6
+  };
+  uint16_t clientsocket_id() const {
+    return GetField<uint16_t>(VT_CLIENTSOCKET_ID, 0);
+  }
+  const UserPacket::FColor *color() const {
+    return GetStruct<const UserPacket::FColor *>(VT_COLOR);
+  }
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint16_t>(verifier, VT_CLIENTSOCKET_ID, 2) &&
+           VerifyField<UserPacket::FColor>(verifier, VT_COLOR, 1) &&
+           verifier.EndTable();
+  }
+};
+
+struct S2C_ChangeColorBuilder {
+  typedef S2C_ChangeColor Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_clientsocket_id(uint16_t clientsocket_id) {
+    fbb_.AddElement<uint16_t>(S2C_ChangeColor::VT_CLIENTSOCKET_ID, clientsocket_id, 0);
+  }
+  void add_color(const UserPacket::FColor *color) {
+    fbb_.AddStruct(S2C_ChangeColor::VT_COLOR, color);
+  }
+  explicit S2C_ChangeColorBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<S2C_ChangeColor> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<S2C_ChangeColor>(end);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<S2C_ChangeColor> CreateS2C_ChangeColor(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    uint16_t clientsocket_id = 0,
+    const UserPacket::FColor *color = nullptr) {
+  S2C_ChangeColorBuilder builder_(_fbb);
+  builder_.add_color(color);
+  builder_.add_clientsocket_id(clientsocket_id);
+  return builder_.Finish();
+}
+
 struct PacketData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef PacketDataBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
@@ -730,6 +792,9 @@ struct PacketData FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   }
   const UserPacket::S2C_Chat *data_as_S2C_Chat() const {
     return data_type() == UserPacket::PacketType_S2C_Chat ? static_cast<const UserPacket::S2C_Chat *>(data()) : nullptr;
+  }
+  const UserPacket::S2C_ChangeColor *data_as_S2C_ChangeColor() const {
+    return data_type() == UserPacket::PacketType_S2C_ChangeColor ? static_cast<const UserPacket::S2C_ChangeColor *>(data()) : nullptr;
   }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
@@ -771,6 +836,10 @@ template<> inline const UserPacket::C2S_Chat *PacketData::data_as<UserPacket::C2
 
 template<> inline const UserPacket::S2C_Chat *PacketData::data_as<UserPacket::S2C_Chat>() const {
   return data_as_S2C_Chat();
+}
+
+template<> inline const UserPacket::S2C_ChangeColor *PacketData::data_as<UserPacket::S2C_ChangeColor>() const {
+  return data_as_S2C_ChangeColor();
 }
 
 struct PacketDataBuilder {
@@ -840,6 +909,10 @@ inline bool VerifyPacketType(::flatbuffers::VerifierTemplate<B> &verifier, const
     }
     case PacketType_S2C_Chat: {
       auto ptr = reinterpret_cast<const UserPacket::S2C_Chat *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case PacketType_S2C_ChangeColor: {
+      auto ptr = reinterpret_cast<const UserPacket::S2C_ChangeColor *>(obj);
       return verifier.VerifyTable(ptr);
     }
     default: return true;

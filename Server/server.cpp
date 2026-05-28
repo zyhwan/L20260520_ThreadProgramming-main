@@ -39,6 +39,8 @@ void DisconnectSocket(SOCKET DisconnectedSocket, fd_set* Sockets)
 		(uint16_t)ClosedSocket
 	);
 
+
+	//[ [][][]   ]
 	auto UserPacketData = UserPacket::CreatePacketData(
 		SendBuilder,
 		UserPacket::PacketType_S2C_Destroy,
@@ -155,6 +157,12 @@ void ProcessPacket(SOCKET ProcessSocket, const char* InBuffer)
 		case 'd':
 			FindSession->X++;
 			break;
+		case 'C':
+		case 'c':
+			FindSession->R = rand() % 255;
+			FindSession->G = rand() % 255;
+			FindSession->B = rand() % 255;
+			break;
 		}
 
 		UserPacket::FVector2D newPos((uint16_t)FindSession->X, (uint16_t)FindSession->Y);
@@ -165,8 +173,8 @@ void ProcessPacket(SOCKET ProcessSocket, const char* InBuffer)
 			flatbuffers::FlatBufferBuilder builder;
 			auto movedata = UserPacket::CreateS2C_Move(
 				builder,
-				(uint16_t)FindSession->ClientSocket,  // clientsocket_id
-				&newPos                                // position
+				(uint16_t)FindSession->ClientSocket,  
+				&newPos                               
 			);
 
 			auto UserPacketData = UserPacket::CreatePacketData(
@@ -178,6 +186,30 @@ void ProcessPacket(SOCKET ProcessSocket, const char* InBuffer)
 			builder.Finish(UserPacketData);
 			SendAll(Receiver.ClientSocket, builder);
 		}
+
+		//컬러값 보내기
+		UserPacket::FColor newColor((uint8_t)FindSession->R, (uint8_t)FindSession->G, (uint8_t)FindSession->B);
+		for (auto Receiver : MySessionManager.SessionList)
+		{
+			flatbuffers::FlatBufferBuilder builder;
+			auto movedata = UserPacket::CreateS2C_ChangeColor(
+				builder,
+				(uint16_t)FindSession->ClientSocket, 
+				&newColor                              
+			);
+
+			auto UserPacketData = UserPacket::CreatePacketData(
+				builder,
+				UserPacket::PacketType_S2C_ChangeColor,
+				movedata.Union()
+			);
+
+			builder.Finish(UserPacketData);
+			SendAll(Receiver.ClientSocket, builder);
+		}
+
+
+
 	}
 	break;
 	}

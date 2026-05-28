@@ -141,23 +141,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="C2S_Login.h" />
-    <ClInclude Include="C2S_Move.h" />
     <ClInclude Include="ChatPacket.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="NetUtil.h" />
     <ClInclude Include="Packet.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="S2C_Destroy.h" />
-    <ClInclude Include="S2C_Login.h" />
-    <ClInclude Include="S2C_Move.h" />
-    <ClInclude Include="S2C_Spawn.h" />
     <ClInclude Include="SessionManager.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="C2S_Login.cpp" />
-    <ClCompile Include="C2S_Move.cpp" />
-    <ClCompile Include="ChatPacket.cpp" />
     <ClCompile Include="NetCommon.cpp" />
     <ClCompile Include="NetUtil.cpp" />
     <ClCompile Include="Packet.cpp" />
@@ -170,10 +161,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="S2C_Destroy.cpp" />
-    <ClCompile Include="S2C_Login.cpp" />
-    <ClCompile Include="S2C_Move.cpp" />
-    <ClCompile Include="S2C_Spawn.cpp" />
     <ClCompile Include="SessionManager.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -1,7 +1,5 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
-
-#include "ChatPacket.h"
 #include "NetUtil.h"
 
 #include <winsock2.h>
@@ -110,6 +108,18 @@ void ProcessPacket(SOCKET ProcessSocket, const char* InBuffer)
 		{
 			lock_guard<std::mutex> lock(SessionLock);
 			MySessionManager.Delete(*FindSession);
+		}
+	}
+	break;
+	case UserPacket::PacketType_S2C_ChangeColor:
+	{
+		auto ColorData = UserPacketData->data_as_S2C_ChangeColor();
+		{
+			lock_guard<std::mutex> lock(SessionLock);
+			Session* FindSession = MySessionManager.GetSession((SOCKET)ColorData->clientsocket_id());
+			FindSession->R = ColorData->color()->r();
+			FindSession->G = ColorData->color()->g();
+			FindSession->B = ColorData->color()->b();
 		}
 	}
 	break;
@@ -260,6 +270,10 @@ int SDL_main(int argc, char* argv[])
 			if (KeyState[SDL_SCANCODE_D])
 			{
 				KeyBuffer.push('D');
+			}
+			if (KeyState[SDL_SCANCODE_C])
+			{
+				KeyBuffer.push('C');
 			}
 		}
 

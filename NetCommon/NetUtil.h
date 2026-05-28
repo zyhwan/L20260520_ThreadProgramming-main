@@ -2,13 +2,6 @@
 
 #include "pch.h"
 
-#include "C2S_Login.h"
-#include "S2C_Login.h"
-#include "C2S_Move.h"
-#include "S2C_Move.h"
-#include "S2C_Spawn.h"
-#include "S2C_Destroy.h"
-
 #include "SessionManager.h"
 
 
