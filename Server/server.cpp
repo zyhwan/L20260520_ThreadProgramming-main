@@ -28,38 +28,36 @@ void DisconnectSocket(SOCKET DisconnectedSocket, fd_set* Sockets)
 
 	cout << "disconnect : " << inet_ntoa(ClosedSockAddr.sin_addr) << endl;
 
-	FD_CLR(ClosedSocket, Sockets);
-	closesocket(ClosedSocket);
+	//FD_CLR(ClosedSocket, Sockets);
+	//closesocket(ClosedSocket);
 
-	S2C_Destroy DestroyPacket;
+	//flatbuffer로 컨버팅
+	flatbuffers::FlatBufferBuilder SendBuilder;
+
+	auto DestroyData = UserPacket::CreateS2C_Destroy(
+		SendBuilder,
+		(uint16_t)ClosedSocket
+	);
+
+	auto UserPacketData = UserPacket::CreatePacketData(
+		SendBuilder,
+		UserPacket::PacketType_S2C_Destroy,
+		DestroyData.Union()
+	);
+
+	SendBuilder.Finish(UserPacketData);
 
 	//dangling pointer
 	Session* FindSession = MySessionManager.GetSession(ClosedSocket);
-	DestroyPacket.ClientSocket = FindSession->ClientSocket;
-
 	MySessionManager.Delete(*FindSession);
-
-	Header DestroyHeader;
-	DestroyHeader.MakeHeader((int)DestroyPacket.ToString().length(), EPacketType::S2C_Destroy);
 
 	//모든 유저한테 이동 패킷 보내줌
 	for (auto Receiver : MySessionManager.SessionList)
 	{
-		//header
-		int SentBytes = SendAll(Receiver.ClientSocket, (char*)&DestroyHeader, HeaderSize);
-		if (SentBytes <= 0)
-		{
-			std::cout << "header send fail." << endl;
-		}
-
-		//Data
-		SentBytes = SendAll(Receiver.ClientSocket, DestroyPacket.ToString().c_str(), (int)(DestroyPacket.ToString().length()));
-		if (SentBytes <= 0)
-		{
-			std::cout << "Data send fail." << endl;
-		}
+		SendAll(Receiver.ClientSocket, SendBuilder);
 	}
-
+	FD_CLR(ClosedSocket, Sockets);
+	closesocket(ClosedSocket);
 }
 
 void ProcessPacket(SOCKET ProcessSocket, const char* InBuffer)

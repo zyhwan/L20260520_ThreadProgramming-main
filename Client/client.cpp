@@ -56,7 +56,6 @@ void Render(SDL_Renderer* MyRender)
 		SDL_RenderFillRect(MyRender, &Rect);
 		SDL_SetRenderDrawColor(MyRender, 255, 255, 255, 255);
 		SDL_RenderDrawRect(MyRender, &Rect);
-
 	}
 	}
 
